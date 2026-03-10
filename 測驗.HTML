@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RO 核能知能模擬系統 (30題衝刺版)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <script src="questions.js"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        :root {
+            --primary: #2c3e50; --secondary: #34495e; --accent: #3498db;
+            --success: #27ae60; --danger: #e74c3c; --bg: #f4f7f6; --warning: #f39c12;
+        }
+        body { font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif; background: var(--bg); margin: 0; padding: 20px; display: flex; justify-content: center; }
+        .container { max-width: 800px; width: 100%; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .header { text-align: center; border-bottom: 2px solid var(--bg); padding-bottom: 15px; margin-bottom: 20px; }
+        .mode-controls { display: flex; justify-content: center; gap: 15px; margin-top: 10px; }
+        .mode-btn { padding: 8px 15px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; background: #bdc3c7; color: white; transition: 0.3s; }
+        .mode-btn.active { background: var(--accent); }
+        .mode-btn.mistake-mode.active { background: var(--warning); }
+        .stats { display: flex; justify-content: space-between; font-size: 0.9em; color: var(--secondary); margin-top: 15px; font-weight: bold; }
+        .question-box { margin-bottom: 20px; min-height: 200px; }
+        .question-text { font-size: 1.2em; line-height: 1.6; margin-bottom: 20px; color: var(--primary); font-weight: bold; }
+        .options-grid { display: grid; gap: 10px; }
+        .option-btn { padding: 15px; border: 2px solid #ecf0f1; border-radius: 8px; background: white; cursor: pointer; transition: 0.2s; text-align: left; font-size: 1em; line-height: 1.4; }
+        .option-btn:hover:not(:disabled) { border-color: var(--accent); background: #ebf5fb; }
+        .option-btn:disabled { cursor: default; }
+        .option-btn.correct { background: var(--success); color: white; border-color: var(--success); }
+        .option-btn.wrong { background: var(--danger); color: white; border-color: var(--danger); }
+        .explanation-box { margin-top: 20px; padding: 15px; background: #e8f6f3; border-left: 5px solid var(--success); display: none; }
+        .nav-btns { display: flex; justify-content: space-between; margin-top: 30px; }
+        .nav-btn { padding: 10px 25px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; background: var(--primary); color: white; }
+        .nav-btn:disabled { background: #ccc; cursor: not-allowed; }
+        #mistake-count { color: var(--danger); }
+/* 基礎樣式優化 */
+body {
+    font-size: 18px; /* 手機建議字體大一點 */
+    line-height: 1.6;
+    padding: 10px;
+    margin: 0;
+}
+
+#quiz-container {
+    width: 100%;
+    max-width: 600px; /* 在手機上撐滿，在電腦上不爆開 */
+    margin: 0 auto;
+}
+
+/* 🚀 選項按鈕優化：手機版最重要的就是「好按」 */
+.option-btn {
+    width: 100%;
+    min-height: 60px; /* 至少 60px 高，拇指才好按 */
+    margin-bottom: 15px;
+    padding: 12px;
+    font-size: 18px;
+    border-radius: 12px; /* 圓角看起來比較現代 */
+    text-align: left;
+    background-color: #f8f9fa;
+    border: 2px solid #dee2e6;
+    display: block;
+    white-space: normal; /* 讓長題目自動換行 */
+}
+
+/* 點擊時的顏色反饋 */
+.option-btn:active {
+    background-color: #e9ecef;
+    transform: scale(0.98); /* 點擊時縮小的視覺回饋 */
+}
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h2>RO 核能知能模擬系統</h2>
+        <div class="mode-controls">
+            <button id="btn-normal" class="mode-btn active" onclick="startSession('normal')">隨機刷題 (30題)</button>
+            <button id="btn-mistake" class="mode-btn mistake-mode" onclick="startSession('mistake')">錯題消滅模式</button>
+        </div>
+        <div class="stats">
+            <span id="progress">進度：0 / 0</span>
+            <span id="score-display">當前得分：0</span>
+            <span>錯題本：<span id="mistake-count">0</span> 題</span>
+        </div>
+    </div>
+
+    <div id="game-view">
+        <div class="question-box">
+            <div id="q-text" class="question-text">正在加載題目...</div>
+            <div id="options" class="options-grid"></div>
+        </div>
+
+        <div id="explanation" class="explanation-box">
+            <strong>【解析】</strong><br>
+            <span id="exp-text"></span>
+        </div>
+
+        <div class="nav-btns">
+            <button id="prev-btn" class="nav-btn" onclick="navigate(-1)">上一題</button>
+            <button id="next-btn" class="nav-btn" onclick="navigate(1)">下一題</button>
+        </div>
+    </div>
+</div>
+        <div id="quiz-container">
+        </div>
+
+        <div id="result-container" style="display:none; text-align:center; padding: 20px;">
+        <h2>🎉 測驗完成！</h2>
+        <div id="score-summary"></div>
+        <div id="wrong-questions-list" style="text-align:left; margin-top:20px;"></div>
+        <button onclick="restartQuiz()" style="padding:15px 30px; font-size:18px; margin-top:20px;">
+        重新開始測驗
+        </button>
+</div>
+
+<script>
+    // 
+        
+         
+console.log("正在從 questions.js 讀取資料...")
+
+
+const allQuestions = window.allQuestions;
+
+if (allQuestions) {
+        console.log("成功讀取到 " + allQuestions.length + " 題！");
+    }
+function showQuestion() {
+    const q = allQuestions[currentQuestionIndex];
+    
+    // 1. 處理題目：如果選項還留在題目裡，這裡可以強制切掉 (假設選項從 A. 開始)
+    let cleanQuestion = q.question.split("A.")[0]; 
+    document.getElementById('questionText').innerText = cleanQuestion;
+
+    const optionButtons = document.querySelectorAll('.option-btn');
+    
+    optionButtons.forEach((btn, index) => {
+        // 2. 判斷資料：如果 q.options 裡有東西就用，沒東西就顯示「無資料」
+        if (q.options && q.options[index]) {
+            btn.innerText = q.options[index];
+            btn.style.display = "block";
+        } else {
+            // 💡 這裡是關鍵：如果這題沒改到，給它一個預設提示
+            btn.innerText = "選項資料缺失"; 
+            console.log(`第 ${q.id} 題資料有誤`);
+        }
+    });
+}
+function nextQuestion() {
+    // 📢 電腦判斷：如果「現在題號」小於「總題數減一」，就繼續下一題
+    if (currentQuestionIndex < allQuestions.length - 1) {
+        currentQuestionIndex++;
+        showQuestion();
+    } 
+    // 📢 如果已經是最後一題了，就執行「開獎」
+    else {
+        showResult();
+    }
+}
+// 🏆 顯示結果的功能
+function showResult() {
+    // 1. 把題目區藏起來，把結果區打開
+    document.getElementById('quiz-container').style.display = 'none';
+    document.getElementById('result-container').style.display = 'block';
+
+    // 2. 顯示你錯了幾題
+    const scoreSummary = document.getElementById('score-summary');
+    scoreSummary.innerHTML = `你總共挑戰了 ${allQuestions.length} 題，其中答錯了 ${wrongAnswers.length} 題。`;
+
+    // 3. 列出所有錯題 (讓你複習)
+    const listDiv = document.getElementById('wrong-questions-list');
+    let listHtml = "<h3>錯題清單：</h3>";
+    wrongAnswers.forEach(q => {
+        listHtml += `<p><b>[ID:${q.id}]</b> ${q.question}<br><span style="color:red">正確答案是：${q.answer}</span></p><hr>`;
+    });
+    listDiv.innerHTML = listHtml;
+}
+
+// 🔄 重新開始的功能
+function restartQuiz() {
+    // 1. 所有變數歸零
+    currentQuestionIndex = 0;
+    wrongAnswers = [];
+
+    // 2. 把結果區藏起來，題目區打開
+    document.getElementById('result-container').style.display = 'none';
+    document.getElementById('quiz-container').style.display = 'block';
+
+    // 3. 重新顯示第一題
+    showQuestion();
+}
+    // 錯題管理器模組
+    const MistakeManager = {
+        getKey: () => 'ro_mistakes',
+        getAll: function() { return JSON.parse(localStorage.getItem(this.getKey()) || '[]'); },
+        getCount: function() { return this.getAll().length; },
+        add: function(question) {
+            let mistakes = this.getAll();
+            if (!mistakes.some(m => m.id === question.id)) {
+                mistakes.push(question);
+                localStorage.setItem(this.getKey(), JSON.stringify(mistakes));
+                updateMistakeUI();
+            }
+        },
+        remove: function(questionId) {
+            let mistakes = this.getAll();
+            mistakes = mistakes.filter(m => m.id !== questionId);
+            localStorage.setItem(this.getKey(), JSON.stringify(mistakes));
+            updateMistakeUI();
+        }
+    };
+
+    let currentSession = [];
+    let currentIndex = 0;
+    let currentMode = 'normal'; 
+
+    // Fisher-Yates 洗牌演算法
+    function shuffle(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
+    }
+
+    function updateMistakeUI() {
+        document.getElementById('mistake-count').innerText = MistakeManager.getCount();
+    }
+// 🏆 顯示這 30 題的成果
+function showResult() {
+    // 1. 隱藏題目區，顯示結果區 (請確保 HTML 有這兩個 ID)
+    document.getElementById('quiz-container').style.display = 'none';
+    document.getElementById('result-container').style.display = 'block';
+
+    // 2. 計算得分並列出租題
+    const listDiv = document.getElementById('wrong-questions-list');
+    let html = `<h2>本輪 30 題測驗結束！</h2>`;
+    html += `<p>你答錯了 ${wrongAnswers.length} 題。</p>`;
+    
+    if (wrongAnswers.length > 0) {
+        html += "<h3>錯題複習：</h3>";
+        wrongAnswers.forEach(q => {
+            html += `<p><b>[ID:${q.id}]</b> ${q.question}<br><span style="color:red">正確答案：${q.answer}</span></p><hr>`;
+        });
+    } else {
+        html += "<p style='color:green'>超強！這輪全對！</p>";
+    }
+
+    // 3. 加上重新開始的按鈕
+    html += `<button onclick="restartQuiz()" style="padding:10px 20px; font-size:18px;">開始下一輪 30 題</button>`;
+    listDiv.innerHTML = html;
+}
+
+// 🔄 重新開始的功能
+function restartQuiz() {
+    currentQuestionIndex = 0; // 題號歸零
+    wrongAnswers = [];       // 清空錯題記錄
+    
+    // 🚀 關鍵：這裡可以選擇「隨機洗牌」，讓下一輪的 30 題不一樣
+    allQuestions.sort(() => Math.random() - 0.5); 
+
+    document.getElementById('result-container').style.display = 'none';
+    document.getElementById('quiz-container').style.display = 'block';
+    showQuestion();
+}
+
+    // 底層資料巡邏犬：檢查資料完整性
+    function validateData() {
+        let hasError = false;
+        allQuestions.forEach(q => {
+            q.options.forEach(opt => {
+                if (!opt.match(/^\s*([A-D])/i)) {
+                    console.error(`[資料庫錯誤] 題目 ID ${q.id} 的選項格式異常: "${opt}"。請確保選項以 A, B, C, D 開頭。`);
+                    hasError = true;
+                }
+            });
+        });
+        if (hasError) console.warn("警告：資料庫中存在不符合格式的選項，可能導致系統誤判。");
+    }
+
+    // 啟動測驗
+    function startSession(mode) {
+        currentMode = mode;
+        
+        // 切換按鈕樣式
+        document.getElementById('btn-normal').classList.toggle('active', mode === 'normal');
+        document.getElementById('btn-mistake').classList.toggle('active', mode === 'mistake');
+
+        // 準備題目池
+        let pool = mode === 'normal' ? [...allQuestions] : MistakeManager.getAll();
+        
+        if (mode === 'mistake' && pool.length === 0) {
+            alert("太棒了！目前錯題本是空的，請繼續保持！");
+            startSession('normal');
+            return;
+        }
+
+        // 執行全域洗牌
+        shuffle(pool);
+        
+        // 【核心修改】：如果是正常模式，且題庫大於 30 題，則隨機抽取 30 題
+        if (mode === 'normal') {
+            const questionCount = Math.min(30, pool.length);
+            pool = pool.slice(0, questionCount);
+            document.getElementById('btn-normal').innerText = `隨機刷題 (${questionCount}題)`;
+        } else {
+            // 錯題模式顯示當前錯題數量
+            document.getElementById('btn-mistake').innerText = `錯題消滅 (${pool.length}題)`;
+        }
+
+        // 建立本次的測驗 Session
+        currentSession = pool.map(q => ({ ...q, userSelected: null })); 
+        currentIndex = 0;
+        
+        loadQuestion(currentIndex);
+        updateMistakeUI();
+    }
+
+    function loadQuestion(index) {
+        const q = currentSession[index];
+        document.getElementById('q-text').innerHTML = `(${index + 1}/${currentSession.length}) [ID:${q.id}] ${q.question}`;
+        const optionsDiv = document.getElementById('options');
+        optionsDiv.innerHTML = '';
+        
+        document.getElementById('prev-btn').disabled = (index === 0);
+        document.getElementById('next-btn').disabled = (index === currentSession.length - 1);
+
+        q.options.forEach((opt) => {
+            const match = opt.match(/^\s*([A-D])/i);
+            const letter = match ? match[1].toUpperCase() : null;
+
+            const btn = document.createElement('button');
+            btn.className = 'option-btn';
+            btn.innerHTML = opt;
+
+            if (q.userSelected) {
+                btn.disabled = true;
+                if (letter === q.answer) {
+                    btn.classList.add('correct');
+                } else if (letter === q.userSelected) {
+                    btn.classList.add('wrong');
+                }
+            } else {
+                btn.onclick = () => checkAnswer(q, letter);
+            }
+            
+            optionsDiv.appendChild(btn);
+        });
+
+        const expBox = document.getElementById('explanation');
+        if (q.userSelected) {
+            document.getElementById('exp-text').innerHTML = q.explanation;
+            expBox.style.display = 'block';
+        } else {
+            expBox.style.display = 'none';
+        }
+
+        updateScoreUI();
+        if (window.MathJax) MathJax.typeset();
+    }
+
+    function checkAnswer(q, selectedLetter) {
+        if (!selectedLetter) {
+            alert("此選項格式異常，無法進行系統判定。請檢查 Console 除錯訊息。");
+            return;
+        }
+
+        q.userSelected = selectedLetter; 
+        const isCorrect = (selectedLetter === q.answer);
+
+        if (currentMode === 'normal') {
+            if (!isCorrect) MistakeManager.add(q);
+        } else if (currentMode === 'mistake') {
+            if (isCorrect) MistakeManager.remove(q.id);
+        }
+
+        loadQuestion(currentIndex); 
+    }
+
+    function navigate(step) {
+        const newIndex = currentIndex + step;
+        if (newIndex >= 0 && newIndex < currentSession.length) {
+            currentIndex = newIndex;
+            loadQuestion(currentIndex);
+        }
+    }
+
+    function updateScoreUI() {
+        const answeredCount = currentSession.filter(q => q.userSelected).length;
+        const correctCount = currentSession.filter(q => q.userSelected === q.answer).length;
+        
+        document.getElementById('progress').innerText = `作答進度：${answeredCount} / ${currentSession.length}`;
+        
+        if (answeredCount > 0) {
+            const score = Math.round((correctCount / currentSession.length) * 100);
+            document.getElementById('score-display').innerText = `目前得分：${score}`;
+        } else {
+            document.getElementById('score-display').innerText = `目前得分：0`;
+        }
+    }
+
+    window.onload = () => {
+        validateData(); // 啟動資料巡邏犬
+        updateMistakeUI();
+        startSession('normal');
+    };
+</script>
+
+</body>
+</html>
