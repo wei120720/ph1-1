@@ -34,34 +34,33 @@
         .nav-btn:disabled { background: #ccc; cursor: not-allowed; }
         #mistake-count { color: var(--danger); }
 /* 基礎樣式優化 */
+/* 建議直接修改或新增這段 CSS */
 body {
-    font-size: 18px; /* 手機建議字體大一點 */
-    line-height: 1.6;
-    padding: 10px;
     margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center; /* 讓內容在電腦上看時能居中 */
+    background-color: #f4f4f4;
 }
 
 #quiz-container {
-    width: 100%;
-    max-width: 600px; /* 在手機上撐滿，在電腦上不爆開 */
-    margin: 0 auto;
+    /* 🚀 關鍵修改：在手機上寬度 100%，但不超過 600px */
+    width: 100%; 
+    max-width: 600px; 
+    
+    /* 確保內距不會撐開寬度 */
+    box-sizing: border-box; 
+    padding: 20px;
+    background-color: white;
+    min-height: 100vh; /* 讓背景撐滿高度 */
 }
 
-/* 🚀 選項按鈕優化：手機版最重要的就是「好按」 */
+/* 🚀 選項按鈕也要撐滿 */
 .option-btn {
-    width: 100%;
-    min-height: 60px; /* 至少 60px 高，拇指才好按 */
-    margin-bottom: 15px;
-    padding: 12px;
-    font-size: 18px;
-    border-radius: 12px; /* 圓角看起來比較現代 */
-    text-align: left;
-    background-color: #f8f9fa;
-    border: 2px solid #dee2e6;
-    display: block;
-    white-space: normal; /* 讓長題目自動換行 */
+    width: 100%; 
+    margin: 10px 0;
+    /* 其他樣式保持不變 */
 }
-
 /* 點擊時的顏色反饋 */
 .option-btn:active {
     background-color: #e9ecef;
@@ -409,3 +408,4 @@ function restartQuiz() {
 
 </body>
 </html>
+
